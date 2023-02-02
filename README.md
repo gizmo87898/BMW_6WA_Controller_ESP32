@@ -26,6 +26,5 @@ What doesnt:
 
 Found but i didnt add yet:
 - auto highbeam light
--front/rear fog light
--highbeam
--
+- front/rear fog light
+- highbeam
