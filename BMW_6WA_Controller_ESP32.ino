@@ -2,8 +2,9 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
-
-
+/*
+ * bmw 6wa cluster controller by gizmo
+ */
 #define lo8(x) ((int)(x)&0xff)
 #define hi8(x) ((int)(x)>>8)
 
