@@ -1,3 +1,4 @@
+
 #include <CAN.h>
 #include <Arduino.h>
 #include <SPI.h>
@@ -15,7 +16,7 @@ unsigned long sinceLast1000msLoop = 0;
 unsigned long sinceLast5sLoop = 0;
 
 //testing shit
-int randomId = 0x0;
+int randomId = 0xFFF;
 int randomData[] = {0, 0, 0, 0, 0, 0, 0, 0};
 int count = 0;
 int testcount = 0;
@@ -23,10 +24,10 @@ int gearcounter = 0x0d;
 
 //cluster variables
 int rpm = 1000; // 0-7500 rpm
-float speed = 10; // m/s
-int temp = 70; // C
+float speed = 0; // m/s
+int temp = 120; // C
 char gear = 0;
-int fuel = 100; // 0-100
+int fuel = 50; // 0-100
 bool parking_lights = false;
 bool high_beam = false;
 bool auto_start_stop = true;
@@ -74,32 +75,6 @@ void loop() {
   }
   if (currentLoop - sinceLast100msLoop > 100) {
     sinceLast100msLoop = currentLoop;
-    //sendRandom(); // Testing
-    sendf3(); // RPM
-    sendd7(); // airbag
-    sendc0(); // jbbe
-    send1a1(); // speed
-    send12f(); // Ignition
-    send1d2(); // gear
-    send19e(); // abs data
-    send21a(); // lighting
-    send291(); // mil,units
-    send30b(); // auto start/stop
-    send3a7(); // Drive Mode
-    send34f(); // handbrtake
-    send349(); // fuel
-    send3f9(); // Temp
-    send592(); // seatbelt
-    if (count == 0xFF) {
-      count = 0;
-    }
-    else {
-      count++;
-    }
-
-  }
-  if (currentLoop - sinceLast1000msLoop > 500) {
-    sinceLast1000msLoop = currentLoop;
     int randomData1 = random(255);
     int randomData2 = random(255);
     int randomData3 = random(255);
@@ -116,12 +91,43 @@ void loop() {
     randomData[5] = randomData6;
     randomData[6] = randomData7;
     randomData[7] = randomData8;
+    sendRandom(); // Testing
+    sendf3(); // RPM
+    sendd7(); // airbag
+    sendc0(); // jbbe
+    send1a1(); // speed
+    send12f(); // Ignition
+    send1d2(); // gear
+    //send36e(); // abs data
+    send21a(); // lighting
+    send291(); // mil,units
+    //send2a7(); // power steering
+    send30b(); // auto start/stop
+    send3a7(); // Drive Mode
+    send34f(); // handbrtake
+    send349(); // fuel
+    send3f9(); // Temp
+    send581(); // seatbelt
+    //sendb6e(); //abs coutner 1
+    //sendb68(); // tpms
+    if (count == 0xFF) {
+      count = 0;
+    }
+    else {
+      count++;
+    }
+
+  }
+  if (currentLoop - sinceLast1000msLoop > 500) {
+    sinceLast1000msLoop = currentLoop;
+    
     //fuel++;
     //speed++;
     //Serial.println(speed);
     //if(speed>260){
     //  speed = 0;
     //}
+    testcount++;
   }
   if (currentLoop - sinceLast200msLoop > 2) {
     sinceLast200msLoop = currentLoop;
@@ -133,8 +139,7 @@ void loop() {
   }
   if (currentLoop - sinceLast5sLoop > 2000) {
     sinceLast5sLoop = currentLoop;
-    randomId += 1;
-    Serial.println(randomId, HEX);
+    randomId -= 1;
     //cnt+=1;
 
   }
@@ -163,12 +168,13 @@ void sendf3() { // RPM
   CAN.write(int(rpm * 1.557) & 0xff); // RPM Lowbyte
   CAN.write(int(rpm * 1.557) >> 8); // RPM Highbyte
   CAN.write(0);
-  CAN.write(0x00);
-  CAN.write(0x00);
+  CAN.write(random(255));
+  CAN.write(random(255));
   CAN.write(0x00);
   CAN.write(0x00);
   CAN.endPacket();
 }
+
 
 
 void send12f() { // Ignition Status
@@ -185,16 +191,16 @@ void send12f() { // Ignition Status
 }
 
 
-void send19e() { // abs data, doesnt work
-  CAN.beginPacket(0x19e);
-  CAN.write(0x00);
-  CAN.write(0xe0);
-  CAN.write(((((abscounter >> 4) + 3) << 4) & 0xF0) | 0x03);
-  CAN.write(0xfc);
-  CAN.write(0xf0);
-  CAN.write(0x43);
-  CAN.write(0x31);
-  CAN.write(0x65);
+void send36e() { // abs data, doesnt really work
+  CAN.beginPacket(0x36e);
+  CAN.write(random(255));
+  CAN.write(count);
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
   CAN.endPacket();
 }
 
@@ -255,6 +261,21 @@ void send291() { // MIL, Units
   CAN.write(0);
   CAN.write(0);
   CAN.write(0x04);
+  CAN.endPacket();
+}
+
+
+void send2a7() { // power steering
+  CAN.beginPacket(0x2a7);
+  CAN.write(random(255));
+  CAN.write(56); 
+  CAN.write(163);
+  Serial.println(testcount);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
   CAN.endPacket();
 }
 
@@ -338,18 +359,45 @@ void send3f9() { // temp
 }
 
 
-void send592() { // seatbelt
-  CAN.beginPacket(0x592);
+void send581() { // seatbelt
+  CAN.beginPacket(0x581);
   CAN.write(0x40);
-  CAN.write(77);
-  CAN.write(0x00);
-  CAN.write(0x30);
+  CAN.write(0x4d);
+  CAN.write(random(255));
+  CAN.write(0x28);
   CAN.write(0xff);
   CAN.write(0xff);
   CAN.write(0xff);
   CAN.write(0xff);
   CAN.endPacket();
 }
+void sendb6e() { // ABS Counter 1
+  CAN.beginPacket(0xb6e);
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.write(random(255));
+  CAN.endPacket();
+}
+void sendb68() { // TPMS
+  CAN.beginPacket(0xb68);
+  CAN.write(0);
+  CAN.write(count);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+  CAN.write(0);
+
+  CAN.endPacket();
+}
+
 
 
 void sendRandom() {
