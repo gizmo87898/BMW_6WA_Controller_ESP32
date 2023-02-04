@@ -16,7 +16,7 @@ unsigned long sinceLast1000msLoop = 0;
 unsigned long sinceLast5sLoop = 0;
 
 //testing shit
-int randomId = 0xFFF;
+int randomId = 0x1ee;
 int randomData[] = {0, 0, 0, 0, 0, 0, 0, 0};
 int count = 0;
 int testcount = 0;
@@ -91,7 +91,6 @@ void loop() {
     randomData[5] = randomData6;
     randomData[6] = randomData7;
     randomData[7] = randomData8;
-    sendRandom(); // Testing
     sendf3(); // RPM
     sendd7(); // airbag
     sendc0(); // jbbe
@@ -139,8 +138,9 @@ void loop() {
   }
   if (currentLoop - sinceLast5sLoop > 2000) {
     sinceLast5sLoop = currentLoop;
-    randomId -= 1;
+    //randomId -= 1;
     //cnt+=1;
+    //sendRandom(); // Testing
 
   }
 }
@@ -404,12 +404,12 @@ void sendRandom() {
   CAN.beginPacket(randomId);
   CAN.write(randomData[0]);
   CAN.write(randomData[1]);
-  CAN.write(randomData[2]);
-  CAN.write(randomData[3]);
-  CAN.write(randomData[4]);
-  CAN.write(randomData[5]);
-  CAN.write(randomData[6]);
-  CAN.write(randomData[7]);
+  //CAN.write(randomData[2]);
+  //CAN.write(randomData[3]);
+  //CAN.write(randomData[4]);
+  //CAN.write(randomData[5]);
+  //CAN.write(randomData[6]);
+  //CAN.write(randomData[7]);
 
   CAN.endPacket();
   Serial.print("Sending 0x");
