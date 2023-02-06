@@ -22,12 +22,15 @@ int count = 0;
 int testcount = 0;
 int gearcounter = 0x0d;
 
+
 //cluster variables
 int rpm = 1000; // 0-7500 rpm
 float speed = 0; // m/s
 int temp = 120; // C
 char gear = 0;
 int fuel = 50; // 0-100
+int lights = 0;
+char lights_bits[11] = {0,0,0,0,0,0,0,0,0,0,0};
 bool parking_lights = false;
 bool high_beam = false;
 bool auto_start_stop = true;
@@ -36,11 +39,18 @@ int fuel_frame[5] = {0x20, 0x10, 0x20, 0x10, 0xFF};
 int abscounter = 0xb3;
 
 
+//time and date
+int hour = 6;
+int minute = 30;
+int seconds = 0;
+int day = 4;
+int month = 2;
+int year = 2023;
 void setup() {
   // Begin serial at 115200bps
   Serial.begin(115200);
   // Set CAN RX/TX pins to 2 and 15
-  CAN.setPins(4, 2);
+  CAN.setPins(18,19);
   // start the CAN bus at 125 kbps
   if (!CAN.begin(500E3)) {
     Serial.println("Starting CAN failed!");
@@ -58,7 +68,19 @@ void loop() {
     rpm = String(Serial.readStringUntil(';')).toInt();
     temp = String(Serial.readStringUntil(';')).toInt();
     fuel = String(Serial.readStringUntil(';')).toInt();
+    lights = String(Serial.readStringUntil(';')).toInt();
   }
+  for (byte i=0; i<11; i++) {
+    byte state = bitRead(lights, i);
+    lights_bits[i] = state;
+  }
+  if(lights_bits[1] == 1) {
+    high_beam = true;
+  }
+  else {
+    high_beam = false;
+  }
+  
   int packetSize = CAN.parsePacket();
   if (packetSize) {
     // if a packet is present
@@ -97,18 +119,19 @@ void loop() {
     send1a1(); // speed
     send12f(); // Ignition
     send1d2(); // gear
-    //send36e(); // abs data
+    send36e(); // abs data
     send21a(); // lighting
     send291(); // mil,units
-    //send2a7(); // power steering
+    send2a7(); // power steering
     send30b(); // auto start/stop
     send3a7(); // Drive Mode
     send34f(); // handbrtake
     send349(); // fuel
+    send39e(); // time and date
     send3f9(); // Temp
     send581(); // seatbelt
-    //sendb6e(); //abs coutner 1
-    //sendb68(); // tpms
+    sendb6e(); // abs coutner 1
+    sendb68(); // tpms
     if (count == 0xFF) {
       count = 0;
     }
@@ -126,7 +149,6 @@ void loop() {
     //if(speed>260){
     //  speed = 0;
     //}
-    testcount++;
   }
   if (currentLoop - sinceLast200msLoop > 2) {
     sinceLast200msLoop = currentLoop;
@@ -141,6 +163,7 @@ void loop() {
     //randomId -= 1;
     //cnt+=1;
     //sendRandom(); // Testing
+    testcount++;
 
   }
 }
@@ -193,10 +216,10 @@ void send12f() { // Ignition Status
 
 void send36e() { // abs data, doesnt really work
   CAN.beginPacket(0x36e);
-  CAN.write(random(255));
-  CAN.write(count);
-  CAN.write(random(255));
-  CAN.write(random(255));
+  CAN.write(136);
+  CAN.write(136);
+  CAN.write(testcount);
+  CAN.write(testcount);
   CAN.write(0);
   CAN.write(0);
   CAN.write(0);
@@ -208,8 +231,8 @@ void send36e() { // abs data, doesnt really work
 void send1a1() { // speed
   int speedval = speed*230;
   CAN.beginPacket(0x1a1);
-  CAN.write(count);
-  CAN.write(count);
+  CAN.write(random(255));
+  CAN.write(random(255));
   CAN.write(lo8(speedval));
   CAN.write(hi8(speedval));
   CAN.write(0xAA);
@@ -236,17 +259,20 @@ void send1d2() { // Gear, doesnt work
 
 
 void send21a() { // Lighting
-  CAN.beginPacket(0x21a);
+  int lights_added = 0;
+  
   if (parking_lights) {
-    CAN.write(0x05);
-    CAN.write(0x12);
-    CAN.write(0xF7);
+    lights_added += 5;
   }
-  else {
-    CAN.write(0x00);
-    CAN.write(0x00);
-    CAN.write(0xF7);
+  
+  if(high_beam) {
+    lights_added += 2;
   }
+  
+  CAN.beginPacket(0x21a);
+  CAN.write(lights_added);
+  CAN.write(0x00);
+  CAN.write(0xF7);
   CAN.endPacket();
 }
 
@@ -267,16 +293,13 @@ void send291() { // MIL, Units
 
 void send2a7() { // power steering
   CAN.beginPacket(0x2a7);
-  CAN.write(random(255));
-  CAN.write(56); 
-  CAN.write(163);
-  Serial.println(testcount);
+  CAN.write(6);
+  CAN.write(54);
   CAN.write(0);
   CAN.write(0);
-  CAN.write(0);
-  CAN.write(0);
-  CAN.write(0);
+  CAN.write(25);
   CAN.endPacket();
+  Serial.println(testcount);
 }
 
 
@@ -323,14 +346,27 @@ void send34f() { // Hnadbrake
   CAN.endPacket();
 }
 
+void send39e() { // date and time
+  CAN.beginPacket(0x2f8);
+  CAN.write(hour);
+  CAN.write(minute);
+  CAN.write(seconds);
+  CAN.write(day);
+  CAN.write((month << 4) | 0x0f); // 1 = traction, 2 = confort+, 4 = sport, 5 = sport+, 6 = dsc off, 7 = eco pro
+  CAN.write(year);
+  CAN.write(year>>8);
+  CAN.write(0xF2);
+  CAN.endPacket();
+}
+
 
 void send3a7() { // drive mode
   CAN.beginPacket(0x3a7);
   CAN.write(0);
+  CAN.write(count);
   CAN.write(0);
-  CAN.write(0);
-  CAN.write(0);
-  CAN.write(4);
+  CAN.write(random(255));
+  CAN.write(5); // 1 = traction, 2 = confort+, 4 = sport, 5 = sport+, 6 = dsc off, 7 = eco pro
   CAN.write(0x00);
   CAN.write(0x00);
   CAN.write(0x00);
@@ -373,14 +409,14 @@ void send581() { // seatbelt
 }
 void sendb6e() { // ABS Counter 1
   CAN.beginPacket(0xb6e);
-  CAN.write(random(255));
-  CAN.write(random(255));
-  CAN.write(random(255));
-  CAN.write(random(255));
-  CAN.write(random(255));
-  CAN.write(random(255));
-  CAN.write(random(255));
-  CAN.write(random(255));
+  CAN.write(count);
+  CAN.write(count);
+  CAN.write(count);
+  CAN.write(count);
+  CAN.write(count);
+  CAN.write(count);
+  CAN.write(count);
+  CAN.write(count);
   CAN.endPacket();
 }
 void sendb68() { // TPMS
